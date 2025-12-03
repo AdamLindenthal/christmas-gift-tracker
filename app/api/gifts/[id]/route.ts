@@ -41,7 +41,7 @@ export async function PUT(
     try {
         const { id } = await Promise.resolve(params)
         const body = await request.json()
-        const { name, description, price, status, url, notes, personId } = body
+        const { name, description, price, status, url, location, notes, personId } = body
 
         const gift = await prisma.gift.update({
             where: { id },
@@ -51,6 +51,7 @@ export async function PUT(
                 price: price !== undefined ? (price ? parseFloat(price) : null) : undefined,
                 status: status || undefined,
                 url: url !== undefined ? url : undefined,
+                location: location !== undefined ? location : undefined,
                 notes: notes !== undefined ? notes : undefined,
                 personId: personId || undefined,
             },

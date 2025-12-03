@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useState } from 'react'
 
 interface GiftWithPerson extends Gift {
-    person: Person
+    person: Person | null
 }
 
 interface GiftCardProps {
@@ -42,7 +42,12 @@ export default function GiftCard({
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                         <h3 className="text-xl font-bold text-gray-800 mb-1">{gift.name}</h3>
-                        <p className="text-sm text-gray-600">pro {gift.person.name}</p>
+                        {gift.person && (
+                            <p className="text-sm text-gray-600">pro {gift.person.name}</p>
+                        )}
+                        {!gift.person && (
+                            <p className="text-sm text-gray-400 italic">Nezařazeno</p>
+                        )}
                     </div>
                     <div className="text-2xl">{config.icon}</div>
                 </div>
@@ -67,55 +72,65 @@ export default function GiftCard({
                     </div>
                 </div>
 
-                {gift.url && (
-                    <a
-                        href={gift.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:text-blue-700 text-sm block mb-3 truncate"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        🔗 Odkaz na produkt
-                    </a>
-                )}
-
-                {showActions && (
-                    <div className="flex gap-2 mt-3">
-                        <select
-                            value={gift.status}
-                            onChange={(e) => onStatusChange(gift.id, e.target.value as GiftStatus)}
-                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <option value="IDEA">💡 Nápad</option>
-                            <option value="ORDERED">📦 Objednáno</option>
-                            <option value="RECEIVED">✅ Doručeno</option>
-                            <option value="WRAPPED">🎁 Zabaleno</option>
-                            <option value="GIVEN">🎉 Předáno</option>
-                        </select>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onEdit(gift)
-                            }}
-                            className="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
-                        >
-                            Upravit
-                        </button>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                if (confirm(`Smazat ${gift.name}?`)) {
-                                    onDelete(gift.id)
-                                }
-                            }}
-                            className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
-                        >
-                            Smazat
-                        </button>
+                {gift.location && (
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-600 text-sm">Umístění</span>
+                        <span className="text-sm text-gray-800 font-medium">
+                            📍 {gift.location}
+                        </span>
                     </div>
                 )}
             </div>
+
+            {gift.url && (
+                <a
+                    href={gift.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-700 text-sm block mb-3 truncate"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    🔗 Odkaz na produkt
+                </a>
+            )}
+
+            {showActions && (
+                <div className="flex gap-2 mt-3">
+                    <select
+                        value={gift.status}
+                        onChange={(e) => onStatusChange(gift.id, e.target.value as GiftStatus)}
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <option value="IDEA">💡 Nápad</option>
+                        <option value="ORDERED">📦 Objednáno</option>
+                        <option value="RECEIVED">✅ Doručeno</option>
+                        <option value="WRAPPED">🎁 Zabaleno</option>
+                        <option value="GIVEN">🎉 Předáno</option>
+                    </select>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onEdit(gift)
+                        }}
+                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                        Upravit
+                    </button>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            if (confirm(`Smazat ${gift.name}?`)) {
+                                onDelete(gift.id)
+                            }
+                        }}
+                        className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                        Smazat
+                    </button>
+                </div>
+            )}
         </div>
+
     )
 }

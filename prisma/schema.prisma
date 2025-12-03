@@ -26,9 +26,10 @@ model Gift {
   price       Float?
   status      GiftStatus @default(IDEA)
   url         String?    // Link to product
+  location    String?    // Physical location of the gift
   notes       String?
-  personId    String
-  person      Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personId    String?
+  person      Person?    @relation(fields: [personId], references: [id], onDelete: SetNull)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 }
