@@ -1,26 +1,119 @@
+@import url('https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fef9f3;
+  --foreground: #1a1a1a;
+  --christmas-red: #c41e3a;
+  --christmas-green: #165b33;
+  --christmas-gold: #ffd700;
+  --christmas-red-light: #ef233c;
+  --christmas-green-light: #2d6a4f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Inter', var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
+
+.font-christmas {
+  font-family: 'Mountains of Christmas', cursive;
+}
+
+/* Snowflake Animation */
+.snowflakes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.snowflake {
+  position: absolute;
+  top: -10%;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.5rem;
+  animation: fall linear infinite;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(100vh);
+  }
+}
+
+.snowflake:nth-child(1) {
+  left: 10%;
+  animation-duration: 10s;
+  animation-delay: 0s;
+}
+
+.snowflake:nth-child(2) {
+  left: 20%;
+  animation-duration: 12s;
+  animation-delay: 1s;
+  font-size: 2rem;
+}
+
+.snowflake:nth-child(3) {
+  left: 30%;
+  animation-duration: 8s;
+  animation-delay: 2s;
+}
+
+.snowflake:nth-child(4) {
+  left: 50%;
+  animation-duration: 14s;
+  animation-delay: 0.5s;
+  font-size: 1.8rem;
+}
+
+.snowflake:nth-child(5) {
+  left: 60%;
+  animation-duration: 11s;
+  animation-delay: 3s;
+}
+
+.snowflake:nth-child(6) {
+  left: 75%;
+  animation-duration: 9s;
+  animation-delay: 1.5s;
+  font-size: 2.2rem;
+}
+
+.snowflake:nth-child(7) {
+  left: 85%;
+  animation-duration: 13s;
+  animation-delay: 2.5s;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--christmas-red);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--christmas-red-light);
 }
