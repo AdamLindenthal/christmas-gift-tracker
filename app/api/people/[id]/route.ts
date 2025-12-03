@@ -45,13 +45,12 @@ export async function PUT(
     try {
         const { id } = await Promise.resolve(params)
         const body = await request.json()
-        const { name, relation } = body
+        const { name } = body
 
         const person = await prisma.person.update({
             where: { id },
             data: {
                 name: name || undefined,
-                relation: relation !== undefined ? relation : undefined,
             },
         })
 
@@ -72,6 +71,7 @@ export async function DELETE(
 ) {
     try {
         const { id } = await Promise.resolve(params)
+        console.log('API: DELETE person called with id:', id)
 
         await prisma.person.delete({
             where: { id },

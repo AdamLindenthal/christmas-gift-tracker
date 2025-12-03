@@ -13,7 +13,6 @@ datasource db {
 model Person {
   id        String   @id @default(cuid())
   name      String
-  relation  String?  // e.g., "Mom", "Brother", "Friend"
   gifts     Gift[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

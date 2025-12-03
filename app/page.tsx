@@ -13,6 +13,7 @@ import {
   DragStartEvent,
   DragEndEvent,
 } from '@dnd-kit/core'
+import ConfirmModal from '@/components/ConfirmModal'
 import {
   sortableKeyboardCoordinates
 } from '@dnd-kit/sortable'
@@ -31,10 +32,13 @@ interface PersonWithStats extends Person {
 
 interface GiftWithPerson extends Gift {
   person: Person | null
+  location: string | null
 }
 
 type View = 'board' | 'list'
 type ListViewMode = 'grid' | 'table'
+type SortConfig = { key: keyof GiftWithPerson | 'personName', direction: 'asc' | 'desc' }
+type FilterConfig = { search: string, personId: string, status: string }
 
 export default function Home() {
   const router = useRouter()
@@ -47,9 +51,15 @@ export default function Home() {
   // Modals state
   const [showPersonModal, setShowPersonModal] = useState(false)
   const [showGiftModal, setShowGiftModal] = useState(false)
+  const [personToDelete, setPersonToDelete] = useState<PersonWithStats | null>(null)
+  const [giftToDelete, setGiftToDelete] = useState<GiftWithPerson | null>(null)
   const [editingPerson, setEditingPerson] = useState<PersonWithStats | null>(null)
   const [editingGift, setEditingGift] = useState<GiftWithPerson | null>(null)
   const [preselectedPersonId, setPreselectedPersonId] = useState<string | undefined>(undefined)
+
+  // Sort and Filter state
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'createdAt', direction: 'desc' })
+  const [filterConfig, setFilterConfig] = useState<FilterConfig>({ search: '', personId: '', status: '' })
 
   // Drag and drop state
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -109,19 +119,30 @@ export default function Home() {
     router.refresh()
   }
 
-  const handleDeletePerson = async (id: string) => {
+  const handleDeletePerson = async () => {
+    if (!personToDelete) return
+
     try {
-      await fetch(`/api/people/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/people/${personToDelete.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error('Delete failed:', err)
+        throw new Error(`Failed to delete person: ${err.message || res.statusText}`)
+      }
+      setPersonToDelete(null)
       fetchPeople()
       fetchGifts()
     } catch (error) {
-      console.error('Failed to delete person:', error)
+      console.error('Error deleting person:', error)
     }
   }
 
-  const handleDeleteGift = async (id: string) => {
+  const handleDeleteGift = async () => {
+    if (!giftToDelete) return
+
     try {
-      await fetch(`/api/gifts/${id}`, { method: 'DELETE' })
+      await fetch(`/api/gifts/${giftToDelete.id}`, { method: 'DELETE' })
+      setGiftToDelete(null)
       fetchGifts()
       fetchPeople()
     } catch (error) {
@@ -224,6 +245,37 @@ export default function Home() {
   const totalSpentReal = peopleWithStats.reduce((sum, p) => sum + p.spent, 0)
   const totalPlanned = peopleWithStats.reduce((sum, p) => sum + p.planned, 0)
   const totalGifts = gifts.length
+
+  // Filter and Sort Gifts
+  const filteredGifts = gifts.filter(gift => {
+    const matchesSearch = gift.name.toLowerCase().includes(filterConfig.search.toLowerCase()) ||
+      (gift.description?.toLowerCase().includes(filterConfig.search.toLowerCase()) ?? false)
+    const matchesPerson = filterConfig.personId ? gift.personId === filterConfig.personId : true
+    const matchesStatus = filterConfig.status ? gift.status === filterConfig.status : true
+    return matchesSearch && matchesPerson && matchesStatus
+  })
+
+  const sortedGifts = [...filteredGifts].sort((a, b) => {
+    const { key, direction } = sortConfig
+    let aValue: any = a[key as keyof GiftWithPerson]
+    let bValue: any = b[key as keyof GiftWithPerson]
+
+    if (key === 'personName') {
+      aValue = a.person?.name || ''
+      bValue = b.person?.name || ''
+    }
+
+    if (aValue < bValue) return direction === 'asc' ? -1 : 1
+    if (aValue > bValue) return direction === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const handleSort = (key: keyof GiftWithPerson | 'personName') => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
 
   if (loading && people.length === 0) {
     return (
@@ -331,7 +383,7 @@ export default function Home() {
                     person={person}
                     gifts={gifts.filter(g => g.personId === person.id)}
                     onEdit={(p) => { setEditingPerson(p); setShowPersonModal(true); }}
-                    onDelete={handleDeletePerson}
+                    onDelete={() => setPersonToDelete(person)}
                     onAddGift={(personId) => {
                       setEditingGift(null)
                       setPreselectedPersonId(personId)
@@ -405,96 +457,107 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Unassigned Gifts Section if any */}
-            {gifts.some(g => !g.personId) && (
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-600 mb-4 flex items-center gap-2">
-                  <span>❓</span> Nezařazené dárky
-                </h3>
-                {listViewMode === 'grid' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {gifts.filter(g => !g.personId).map(gift => (
-                      <GiftCard
+            {/* Filters */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Hledat</label>
+                <input
+                  type="text"
+                  value={filterConfig.search}
+                  onChange={(e) => setFilterConfig(prev => ({ ...prev, search: e.target.value }))}
+                  placeholder="Název, popis..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Osoba</label>
+                <select
+                  value={filterConfig.personId}
+                  onChange={(e) => setFilterConfig(prev => ({ ...prev, personId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="">Všechny osoby</option>
+                  {people.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Stav</label>
+                <select
+                  value={filterConfig.status}
+                  onChange={(e) => setFilterConfig(prev => ({ ...prev, status: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="">Všechny stavy</option>
+                  <option value="IDEA">💡 Nápad</option>
+                  <option value="ORDERED">📦 Objednáno</option>
+                  <option value="RECEIVED">✅ Doručeno</option>
+                  <option value="WRAPPED">🎁 Zabaleno</option>
+                  <option value="GIVEN">🎉 Předáno</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Gifts List */}
+            {listViewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sortedGifts.map(gift => (
+                  <GiftCard
+                    key={gift.id}
+                    gift={gift}
+                    onEdit={(g) => { setEditingGift(g); setShowGiftModal(true); }}
+                    onDelete={() => setGiftToDelete(gift)}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('name')}
+                      >
+                        Dárek {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('personName')}
+                      >
+                        Pro koho {sortConfig.key === 'personName' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('price')}
+                      >
+                        Cena {sortConfig.key === 'price' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                        onClick={() => handleSort('status')}
+                      >
+                        Stav {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                      </th>
+                      <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Akce</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {sortedGifts.map(gift => (
+                      <GiftTableRow
                         key={gift.id}
                         gift={gift}
                         onEdit={(g) => { setEditingGift(g); setShowGiftModal(true); }}
-                        onDelete={handleDeleteGift}
+                        onDelete={() => setGiftToDelete(gift)}
                         onStatusChange={handleStatusChange}
                       />
                     ))}
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <table className="w-full text-left">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Dárek</th>
-                          <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Cena</th>
-                          <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Stav</th>
-                          <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Akce</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {gifts.filter(g => !g.personId).map(gift => (
-                          <GiftTableRow
-                            key={gift.id}
-                            gift={gift}
-                            onEdit={(g) => { setEditingGift(g); setShowGiftModal(true); }}
-                            onDelete={handleDeleteGift}
-                            onStatusChange={handleStatusChange}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                  </tbody>
+                </table>
               </div>
             )}
-
-            {/* Assigned Gifts */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-600 mb-4 flex items-center gap-2">
-                <span>🎁</span> Přiřazené dárky
-              </h3>
-              {listViewMode === 'grid' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {gifts.filter(g => g.personId).map(gift => (
-                    <GiftCard
-                      key={gift.id}
-                      gift={gift}
-                      onEdit={(g) => { setEditingGift(g); setShowGiftModal(true); }}
-                      onDelete={handleDeleteGift}
-                      onStatusChange={handleStatusChange}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Dárek</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Pro koho</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Cena</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Stav</th>
-                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Akce</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {gifts.filter(g => g.personId).map(gift => (
-                        <GiftTableRow
-                          key={gift.id}
-                          gift={gift}
-                          onEdit={(g) => { setEditingGift(g); setShowGiftModal(true); }}
-                          onDelete={handleDeleteGift}
-                          onStatusChange={handleStatusChange}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
 
             {gifts.length === 0 && (
               <div className="text-center py-12 text-gray-500 bg-white rounded-xl border-2 border-dashed border-gray-200">
@@ -542,6 +605,28 @@ export default function Home() {
           }}
         />
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={!!personToDelete}
+        title="Smazat osobu?"
+        message={`Opravdu chcete smazat ${personToDelete?.name}? Tím se smažou i všechny dárky přiřazené k této osobě.`}
+        confirmLabel="Smazat"
+        isDangerous={true}
+        onConfirm={handleDeletePerson}
+        onCancel={() => setPersonToDelete(null)}
+      />
+
+      {/* Confirm Delete Gift Modal */}
+      <ConfirmModal
+        isOpen={!!giftToDelete}
+        title="Smazat dárek?"
+        message={`Opravdu chcete smazat dárek "${giftToDelete?.name}"?`}
+        confirmLabel="Smazat"
+        isDangerous={true}
+        onConfirm={handleDeleteGift}
+        onCancel={() => setGiftToDelete(null)}
+      />
     </div>
   )
 }
@@ -557,7 +642,6 @@ function PersonModal({
   onSave: () => void
 }) {
   const [name, setName] = useState(person?.name || '')
-  const [relation, setRelation] = useState(person?.relation || '')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -573,7 +657,6 @@ function PersonModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          relation: relation || null,
         }),
       })
 
@@ -603,18 +686,6 @@ function PersonModal({
               onChange={(e) => setName(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               placeholder="např. Mamka, Jan, Sára"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Vztah
-            </label>
-            <input
-              type="text"
-              value={relation}
-              onChange={(e) => setRelation(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="např. Matka, Kamarád, Bratr"
             />
           </div>
           <div className="flex gap-3 mt-6">
@@ -838,7 +909,7 @@ function GiftTableRow({
 }: {
   gift: GiftWithPerson
   onEdit: (gift: GiftWithPerson) => void
-  onDelete: (id: string) => void
+  onDelete: () => void
   onStatusChange: (id: string, status: GiftStatus) => void
 }) {
   const statusConfig = {
@@ -895,9 +966,7 @@ function GiftTableRow({
           </button>
           <button
             onClick={() => {
-              if (confirm(`Smazat ${gift.name}?`)) {
-                onDelete(gift.id)
-              }
+              onDelete()
             }}
             className="text-red-600 hover:text-red-900"
           >

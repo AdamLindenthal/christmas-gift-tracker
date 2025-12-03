@@ -6,12 +6,13 @@ import { useState } from 'react'
 
 interface GiftWithPerson extends Gift {
     person: Person | null
+    location: string | null
 }
 
 interface GiftCardProps {
     gift: GiftWithPerson
     onEdit: (gift: GiftWithPerson) => void
-    onDelete: (id: string) => void
+    onDelete: () => void
     onStatusChange: (id: string, status: GiftStatus) => void
 }
 
@@ -120,9 +121,7 @@ export default function GiftCard({
                     <button
                         onClick={(e) => {
                             e.stopPropagation()
-                            if (confirm(`Smazat ${gift.name}?`)) {
-                                onDelete(gift.id)
-                            }
+                            onDelete()
                         }}
                         className="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
                     >

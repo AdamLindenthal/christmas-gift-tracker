@@ -70,6 +70,7 @@ christmas-gift-tracker/
   - 🎉 **Předáno** (Given)
 - **Quick status changes** - Dropdown on hover for fast updates
 - **Product links** - Store URLs to products for easy reference
+- **Location tracking** - Note where the gift is hidden (e.g., "In the closet")
 
 ### ✅ Dashboard Views
 
@@ -78,17 +79,26 @@ christmas-gift-tracker/
   - **Direct Editing** - Edit gifts directly from the person card.
 - **🎁 Všechny dárky (All Gifts) View** - Complete list of all gifts.
   - **Unassigned Gifts** - Support for gifts not yet assigned to anyone.
-  - **Filterable** - View all gifts in one place.
+  - **Filterable** - Filter by text search, person, or gift status.
+  - **Sortable** - Sort table by name, person, price, or status.
+  - **Grid/Table View** - Toggle between visual grid and detailed table view.
 
 ### ✅ Spending Tracking
 
 - **Total Statistics** - Dashboard shows:
   - Total number of gifts
-  - Total amount spent across all people
+  - Total amount spent across all people (split by Spent / Planned)
 - **Per-Person Tracking** - Each person card displays:
   - Number of gifts
-  - Total spent for that person (in Kč)
+  - Total spent (green) + Planned amount (grey)
 
+### 4. Refined Price Display
+The price display on person cards has been refined to clearly separate "Spent" and "Planned" amounts.
+- **Spent**: Shown in green, representing the sum of prices for gifts that are not in the "Idea" state.
+- **Planned**: Shown in grey with a "+" prefix, representing the sum of prices for gifts that are still just "Ideas".
+
+### 5. Custom Deletion Confirmation
+To improve user experience and prevent accidental deletions, a custom confirmation modal has been implemented for deleting both people and gifts. This replaces the native browser alert and provides a clearer, safer deletion process.
 ### ✅ Christmas Theme
 
 - **Festive Design** - Red and green color scheme with gold accents
@@ -133,7 +143,6 @@ Browser automation successfully tested:
 model Person {
   id        String   @id @default(cuid())
   name      String
-  relation  String?  // e.g., "Mom", "Brother", "Friend"
   budget    Float?
   gifts     Gift[]
   createdAt DateTime @default(now())
@@ -285,7 +294,6 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 2. Click "+ Add Person" button
 3. Fill in:
    - Name (required)
-   - Relation (optional, e.g., "Mother", "Friend")
    - Budget (optional, in dollars)
 4. Click "Save"
 
