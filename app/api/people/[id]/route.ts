@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 // GET a single person with their gifts
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await Promise.resolve(params)
@@ -40,7 +40,7 @@ export async function GET(
 // PUT update a person
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await Promise.resolve(params)
@@ -67,7 +67,7 @@ export async function PUT(
 // DELETE a person
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await Promise.resolve(params)
