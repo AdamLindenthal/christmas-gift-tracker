@@ -89,7 +89,7 @@ export default function LoginPage() {
                         disabled={loading}
                         className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-red-600 to-green-600 hover:from-red-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
-                        {loading ? 'Přihlašování...' : 'Vstoupit do dílny 🎅'}
+                        {loading ? 'Přihlašování...' : 'Vstoupit 🎅'}
                     </button>
                 </form>
 
